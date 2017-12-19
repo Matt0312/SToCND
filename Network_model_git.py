@@ -107,7 +107,7 @@ for line in sys.stdin:
         time = round(float(fields[0]),3)
 
 
-        user = fields[1] #### Make one in final version
+        user = fields[1]
         if user not in Users:
             continue
 

@@ -110,6 +110,11 @@ class User():
 
 
 
+ #### TRANSFORM THE DATA USING THE ESTIMATED SEASONALITY    
+    def get_transformed_training_data(self):
+        self.trainingdata.sort()
+        for t in self.trainingdata:
+            self.transformed_data += [self.transform_seasonal(t)]
 
   
 
@@ -142,13 +147,8 @@ class User():
 
         return Total
 
- #### TRANSFORM THE DATA USING THE ESTIMATED SEASONALITY    
-    def get_transformed_training_data(self):
-        self.trainingdata.sort()
-        for t in self.trainingdata:
-            self.transformed_data += [self.transform_seasonal(t)]
 
-            
+             
  ####ESTIMATE THE PARAMETERS OF ALL MODELS FOR SELF-EXCITING BEHAVIOUR
     def get_self_exciting_parameters(self, geom, seasonal):
         if geom:
@@ -168,7 +168,7 @@ class User():
             self.get_parameters_WS(geom)
 
 
-############FUCTIONS TO GET PARAMETERS
+
 
  ####ESTIMATING THE SEASONAL DENSITY FUNCTION AND AVERAGE NUMBER OF EVENTS PER DAY
     def get_seasonal_parameters(self, workweek, trainingperiod):
@@ -177,7 +177,7 @@ class User():
         total_events= sum(weekly_multipliers_2)
         self.weekly_multipliers = [i/total_events for i in weekly_multipliers_2]
 
-
+ #### ESTIMATING THE WE MODEL USING NELDER MEAD
 
     def WE_lik(self, alpha , beta , lam ):
         term_1 = sum( [log( lam + alpha * exp( - beta * (self.transformed_data[ i + 1 ] - self.transformed_data[ i ])) ) for i in range( len (self.transformed_data ) - 1 ) ] )
@@ -194,7 +194,7 @@ class User():
         self.WE_alpha, self.WE_beta, self.WE_lambda =  [ exp (var[ 0 ] ), ( exp ( var[ 1 ]) ) + exp(var[ 0 ] ), exp(var [ 2 ])]
     
 
-
+ #### ESTIMATING THE HE MODEL USING NELDER MEAD
 
     def HE_lik(self, alpha , beta , lam ):
         A = [ 0 ]
@@ -216,7 +216,7 @@ class User():
 
 
 
-
+ #### ESTIMATING THE WS MODEL USING A CHANGEPOINT DETECTION METHODOLOGY
 
     def get_parameters_WS(self, geom):
         self.WS_cutoffs ,self.WS_rates, self.WS_cps =  step_function_PELT_Pat( self.transformed_data, geom )
@@ -258,6 +258,7 @@ class User():
         EXP1 =  self.WE_lambda * waiting_time + (1-(self.WE_alpha / self.WE_beta) * (exp(-self.WE_beta * waiting_time))) #####CHECK
         return 1 - exp(-EXP1)
     
+    #def get_pvalue_HS(self,waiting_time):
 
 
     def get_pvalue_HE(self, waiting_time):
@@ -329,10 +330,10 @@ class User():
 
 
 
-#####FUNCTIONS FOR PELT CHANGEPOINT DETECTION FOR SELF EXCITING BEHAVIOUR
 
+ #### COST FUNCTIONS FOR GEOMETRIC AND EXPONENTIAL 
 
-def C2(list, censored):
+def C2(list, censored): 
     m = mean(list)
     if m == 0:
         m = 1
@@ -342,7 +343,7 @@ def C2(list, censored):
     return -2*sum(log_like)
 
 
-def C(list,index):
+def C(list,index):  
     m = mean(list)
     if m == 0:
         m = 1
@@ -350,9 +351,16 @@ def C(list,index):
     return -2*sum(log_like)
 
 
+ #### FUNCTION TO FIND MAXIMUM LIKELIHOOD CHANGEPOINTS FOR A NON-INCREASING STEP FUNCTION
 def step_function(times):
-    n = len( times)
-    PP = times
+    dy = times
+    sdy = sorted( dy )
+    n = len( sdy ) -1
+    Di =  diff( sdy )
+    Di = list(Di)
+    Di += [sdy[0]]
+    P = [Di[i] * (n-i) for i in range(len(Di))]
+    PP = cumsum(P)
     cps = [0]
     rates = []
     cutoffs = []
@@ -365,9 +373,8 @@ def step_function(times):
             start = PP[ j - 1 ]
         max_lhd = 0
         for i in range( j, len( PP ) ):
-            if PP[i] != start:
-                lhd = (i+1-j) / ((PP[i] - start))
-            else:
+            lhd = (i+1-j) / ((PP[i] - start))
+            if lhd > 999999:
                 lhd = 999999
             if lhd >= max_lhd:# and P[i]!= 0:
                 l = i
@@ -375,12 +382,13 @@ def step_function(times):
         cps += [l+1]
         rates += [ max_lhd ]
 
-    return [PP[i-1] for i in cps], rates, cps
+    return [sdy[i-1] for i in cps], rates, cps
 
+ #### PELT FOR CHANGEPOINT DETECTION USING MAXIMUM LIKELIHOOD CHANGEPOINTS
 
 def PELT_Pat(list1, beta, geom):
     possible_steps = step_function(list1)[2]
-    #possible_steps = [i + 1 for i in possible_steps[1:]]#i+1
+    possible_steps = [i + 1 for i in possible_steps[1:]]#i+1
     possible_steps += [0]
     possible_steps += [len(list1)-1]
     possible_steps +=  [min(i for i in range(len(list1)) if list1[i] != 0)  ]
@@ -411,6 +419,7 @@ def PELT_Pat(list1, beta, geom):
     return cp[-1]
 
 
+ #### TRANSFORMATION FUNCTION AND PELT FOR ESTIMATING WS PARAMETERS 
 def step_function_PELT_Pat(times , geom):
     dy = diff( times )
     beta = 2 * log(len(times))

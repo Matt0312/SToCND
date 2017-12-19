@@ -8,16 +8,9 @@ from numpy import log,diff,mean,argmin,sort,cumsum
 from scipy.stats import expon,poisson
 
 
-def C(A):
-    m = mean(A)
-    if m == 0:
-        m = 1
-    likelihood=expon.pdf(A,0,m)
-
-    return -2*sum([log(i) for i in likelihood])
 
 
-
+ #### SESSIONIZING FUNCTION, USE TO DECRESE THE SELF-EXCITING EFFECTS BEFORE ESTIMATING THE SEASONAL DENSITY
 def sessionize2(x):
     n_=len(x)
     dx=diff(x)
@@ -53,7 +46,7 @@ def sessionize2(x):
     return block_means,block_starts,block_numbers
 
 
-
+#######PELT FOR POISSON PROCESS
 def PELT(list1,beta):
     cp = [[0]]
     R = [0]
@@ -74,7 +67,17 @@ def PELT(list1,beta):
     return cp[-1]
 
 
+ #### COST FUNCTION OF POISSON PROCESS
+def C(A):
+    m = mean(A)
+    if m == 0:
+        m = 1
+    likelihood=expon.pdf(A,0,m)
 
+    return -2*sum([log(i) for i in likelihood])
+
+
+########FUNCTION TO GET DENSITY FUNCTION FOR SEASONAL BEHAVIOUR
 
 def step_function_PELT(times2):
     times = times2
@@ -109,7 +112,7 @@ def step_function_PELT(times2):
 
 
 
-
+####### FUNCTION TO GET AMOUNT OF ACTIVITY PER DAY
 
 def day_PELT(times, training_period):
     no_big_seasons = training_period / 7
