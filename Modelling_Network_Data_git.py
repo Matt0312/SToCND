@@ -219,7 +219,7 @@ class User():
 
 
     def get_parameters_WS(self, geom):
-        self.WS_cutoffs ,self.WS_rates, self.WS_cps =  step_function_PELT_Pat( self.transformed_data, geom )
+        self.WS_cutoffs ,self.WS_rates, self.WS_cps =  step_function_PELT_MLE( self.transformed_data, geom )
 
 
 
@@ -378,7 +378,7 @@ def step_function(times):
     return [PP[i-1] for i in cps], rates, cps
 
 
-def PELT_Pat(list1, beta, geom):
+def PELT_MLE(list1, beta, geom):
     possible_steps = step_function(list1)[2]
     #possible_steps = [i + 1 for i in possible_steps[1:]]#i+1
     possible_steps += [0]
@@ -411,7 +411,7 @@ def PELT_Pat(list1, beta, geom):
     return cp[-1]
 
 
-def step_function_PELT_Pat(times , geom):
+def step_function_PELT_MLE(times , geom):
     dy = diff( times )
     beta = 2 * log(len(times))
     sdy = [0] + sorted( dy )
@@ -421,7 +421,7 @@ def step_function_PELT_Pat(times , geom):
     
     P = [(Di[i]) * (n-i)  for i in range(len(Di))]
     PP = list((cumsum(P)))
-    cps = (PELT_Pat(PP,beta, geom))
+    cps = (PELT_MLE(PP,beta, geom))
     
     
 
